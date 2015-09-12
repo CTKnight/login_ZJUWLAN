@@ -8,18 +8,17 @@ import urllib.parse
 # loginURL = 'https://net.zju.edu.cn/mobile5.html'
 # loginURL is invalid,use requestURL instead
 requestURL = 'https://net.zju.edu.cn/cgi-bin/srun_portal'
+extraURL = 'https://net.zju.edu.cn/rad_online.php'
 UA = 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/45.0.2454.85 Safari/537.36'
 # static vars
 username = ''
 password = ''
+page = ''
 # initiate values
-
-try:
-    f = open('values.txt', 'r+')
-except FileNotFoundError:
+def initfile():
     f = open('values.txt', 'w')
     f.close()
-# check values.txt
+
 
 
 def storeValues():
@@ -49,41 +48,69 @@ def inputValues(*, passwordError=False):
     global username, password
     if not username:
 
-        username = input('请输入用户名:')
-        password = input('请输入密码:')
+        username = input('username:')
+        password = input('password:')
         storeValues()
     elif passwordError:
-
-        username = input('请检查用户名后再次输入:')
-        password = input('请检查密码后再次输入:')
+        initfile()
+        username = input('retype username:')
+        password = input('retype password:')
         storeValues()
     else:
         return 'unknown args'
 
 # for reading user's input
+def request(url,value):
 
+    data = urllib.parse.urlencode(value).encode(encoding='UTF8')
+# encode them
+    cookie = http.cookiejar.CookieJar()
+    handler = urllib.request.HTTPCookieProcessor(cookie)
+    opener = urllib.request.build_opener(handler)
+    opener.addheaders = [('User-agent', UA)]
+# cookie and header stuff
+    urllib.request.install_opener(opener)
+    request = urllib.request.Request(url, data)
+    response = opener.open(request)
+    global page
+    page = response.read()
+# open requesturl and cookie will be collected automatically by cookiejar
+
+try:
+    f = open('values.txt', 'r+')
+except FileNotFoundError:
+    initfile()
+# check values.txt,if it doesn't exist,create one
 readValues()
 
 # input username and password
-values = {'username': username,
-          'password': password,
-          'action': 'login',
-          'ac_id': 5,
-          'is_ldap': 1,
-          'type': 2,
-          'local_auth': 1}
+requestvalues = {
+    'username': username,
+    'password': password,
+    'action': 'login',
+    'ac_id': 5,
+    'is_ldap': 1,
+    'type': 2,
+    'local_auth': 1}
+extravalues = {
+    'action':'auto_dm',
+    'uid':1,
+    'username':username,
+    'password':password}
 # store them in a dict
 # thanks to Fiddler2
-data = urllib.parse.urlencode(values).encode(encoding='UTF8')
-# encode them
-cookie = http.cookiejar.CookieJar()
-handler = urllib.request.HTTPCookieProcessor(cookie)
-opener = urllib.request.build_opener(handler)
-opener.addheaders = [('User-agent', UA)]
-# cookie and header stuff
-urllib.request.install_opener(opener)
-request = urllib.request.Request(requestURL, data)
-url = opener.open(request)
-page = url.read()
 
-# open requesturl and cookie will be collected automatically by cookiejar
+request(requestURL,requestvalues)
+
+if page == b'online_num_error':
+    print('online_num_error')
+    # catch online_num_error, try to kick off the other device
+    request(extraURL,extravalues)
+    # send request to kick off
+    request(requestURL,requestvalues)
+    # login again
+elif page == b'': #//TODO: check wrong username and password
+    ...
+else:
+    print('%s login successfully!'%(username))
+
