@@ -14,11 +14,12 @@ UA = 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko
 username = ''
 password = ''
 page = ''
+requestvalues = {}
+extravalues = {}
 # initiate values
 def initfile():
     f = open('values.txt', 'w')
     f.close()
-
 
 
 def storeValues():
@@ -45,72 +46,93 @@ def readValues():
 # for reading stored values
 
 def inputValues(*, passwordError=False):
-    global username, password
+    global username, password, extravalues, requestvalues
     if not username:
-
+        # check empty username
         username = input('username:')
         password = input('password:')
         storeValues()
+        setValues()
     elif passwordError:
         initfile()
         username = input('retype username:')
         password = input('retype password:')
         storeValues()
+        setValues()
     else:
         return 'unknown args'
 
-# for reading user's input
-def request(url,value):
 
+# for reading user's input
+def request(url, value):
     data = urllib.parse.urlencode(value).encode(encoding='UTF8')
-# encode them
+    # encode them
     cookie = http.cookiejar.CookieJar()
     handler = urllib.request.HTTPCookieProcessor(cookie)
     opener = urllib.request.build_opener(handler)
     opener.addheaders = [('User-agent', UA)]
-# cookie and header stuff
+    # cookie and header stuff
     urllib.request.install_opener(opener)
     request = urllib.request.Request(url, data)
     response = opener.open(request)
     global page
     page = response.read()
+
+
 # open requesturl and cookie will be collected automatically by cookiejar
+def setValues():
+    global requestvalues, extravalues
+    requestvalues = {
+        'username': username,
+        'password': password,
+        'action': 'login',
+        'ac_id': 5,
+        'is_ldap': 1,
+        'type': 2,
+        'local_auth': 1}
+    extravalues = {
+        'action': 'auto_dm',
+        'uid': 1,
+        'username': username,
+        'password': password}
+
+
+# store them in a dict
+# thanks to Fiddler2
+
+def checkStatus():
+    if page == b'online_num_error':
+        print('online_num_error')
+        # catch online_num_error, try to kick off the other device
+        request(extraURL, extravalues)
+        # send request to kick off
+        request(requestURL, requestvalues)
+        # login again
+        checkStatus()
+
+
+    elif (page == b'password_error' or page == b'username_error'):
+        # check wrong username and password
+        print('bad username or password')
+        inputValues(passwordError=True)
+        request(requestURL, requestvalues)
+        checkStatus()
+
+    elif page == b'<script language="javascript">location="/srun_portal.html?action=login_ok";</script> ':
+        print('%s login successfully!' % (username))
+    else:
+        print('unknown response:', page)
+
 
 try:
     f = open('values.txt', 'r+')
+    f.close()
 except FileNotFoundError:
     initfile()
 # check values.txt,if it doesn't exist,create one
 readValues()
-
+setValues()
 # input username and password
-requestvalues = {
-    'username': username,
-    'password': password,
-    'action': 'login',
-    'ac_id': 5,
-    'is_ldap': 1,
-    'type': 2,
-    'local_auth': 1}
-extravalues = {
-    'action':'auto_dm',
-    'uid':1,
-    'username':username,
-    'password':password}
-# store them in a dict
-# thanks to Fiddler2
 
-request(requestURL,requestvalues)
-
-if page == b'online_num_error':
-    print('online_num_error')
-    # catch online_num_error, try to kick off the other device
-    request(extraURL,extravalues)
-    # send request to kick off
-    request(requestURL,requestvalues)
-    # login again
-elif page == b'': #//TODO: check wrong username and password
-    ...
-else:
-    print('%s login successfully!'%(username))
-
+request(requestURL, requestvalues)
+checkStatus()
