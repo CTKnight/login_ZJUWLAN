@@ -19,7 +19,7 @@ requestvalues = {}
 extravalues = {}
 # initiate values
 def initfile():
-    f = open('values.txt', 'x')
+    f = open('values.txt', 'w')
     f.close()
 
 
