@@ -3,6 +3,7 @@ __author__ = 'ctknight'
 import http.cookiejar
 import urllib.request
 import urllib.parse
+import os.path
 
 
 # loginURL = 'https://net.zju.edu.cn/mobile5.html'
@@ -18,7 +19,7 @@ requestvalues = {}
 extravalues = {}
 # initiate values
 def initfile():
-    f = open('values.txt', 'w')
+    f = open('values.txt', 'x')
     f.close()
 
 
@@ -77,9 +78,9 @@ def request(url, value):
     response = opener.open(request)
     global page
     page = response.read()
+    # open requesturl and cookie will be collected automatically by cookiejar
 
 
-# open requesturl and cookie will be collected automatically by cookiejar
 def setValues():
     global requestvalues, extravalues
     requestvalues = {
@@ -123,16 +124,12 @@ def checkStatus():
     else:
         print('unknown response:', page)
 
-
-try:
-    f = open('values.txt', 'r+')
-    f.close()
-except FileNotFoundError:
+# let's start!
+if not os.path.isfile('values.txt'):
     initfile()
 # check values.txt,if it doesn't exist,create one
 readValues()
 setValues()
-# input username and password
-
 request(requestURL, requestvalues)
 checkStatus()
+dict()
