@@ -121,6 +121,9 @@ def checkStatus():
 
     elif page == b'<script language="javascript">location="/srun_portal.html?action=login_ok";</script> ':
         print('%s login successfully!' % (username))
+
+    elif page == b'\xe6\x82\xa8\xe7\x9a\x84ip\xe5\xbc\x82\xe5\xb8\xb8\xef\xbc\x8c\xe8\xaf\xb7\xe6\x96\xad\xe5\xbc\x80wifi\xe5\x90\x8e\xe9\x87\x8d\xe6\x96\xb0\xe8\xbf\x9e\xe6\x8e\xa5':
+        print('Not connected to ZJUWlan')
     else:
         print('unknown response:', page)
 
