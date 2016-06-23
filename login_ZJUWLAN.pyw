@@ -104,6 +104,7 @@ def setValues():
 
 def checkStatus(page):
     if page.startswith(b'E2532'):
+        # 'E2532: The two authentication interval cannot be less than 10 seconds.'
         print('online_num_error')
         # catch online_num_error, try to kick off the other device
         request(logoutUrl, logoutValues)
@@ -114,6 +115,7 @@ def checkStatus(page):
 
 
     elif (page.startswith(b'E2901')):
+        # 'E2901: (Third party 1)bind_user2: ldap_bind error(请检查用户名和密码)
         # check wrong username and password
         print('bad username or password')
         inputValues(passwordError=True)
