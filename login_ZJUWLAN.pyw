@@ -7,9 +7,9 @@ import os.path
 
 
 # loginURL = 'https://net.zju.edu.cn/mobile5.html'
-# loginURL is invalid,use requestURL instead
-requestURL = 'https://net.zju.edu.cn/cgi-bin/srun_portal'
-extraURL = 'https://net.zju.edu.cn/rad_online.php'
+# loginURL is invalid,use loginUrl instead
+loginUrl = 'https://net.zju.edu.cn/include/auth_action.php'
+logoutUrl = 'https://net.zju.edu.cn/cgi-bin/srun_portal'
 UA = 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/45.0.2454.85 Safari/537.36'
 # static vars
 username = ''
@@ -71,59 +71,57 @@ def request(url, value):
     cookie = http.cookiejar.CookieJar()
     handler = urllib.request.HTTPCookieProcessor(cookie)
     opener = urllib.request.build_opener(handler)
-    opener.addheaders = [('User-agent', UA)]
+    opener.addheaders = [('User-agent', UA),
+                         ('X-Requested-With', 'XMLHttpRequest'),
+                         ('Origin', 'https://net.zju.edu.cn'),
+                         ('Referer', 'https://net.zju.edu.cn/srun_portal_pc.php?url=http://www.baidu.com/&ac_id=3')]
     # cookie and header stuff
     urllib.request.install_opener(opener)
     request = urllib.request.Request(url, data)
     response = opener.open(request)
-    global page
-    page = response.read()
-    # open requesturl and cookie will be collected automatically by cookiejar
+    return response.read()
+    # open loginUrl and cookie will be collected automatically by cookiejar
 
 
 def setValues():
-    global requestvalues, extravalues
-    requestvalues = {
+    global loginValues, logoutValues
+    loginValues = {
         'username': username,
         'password': password,
         'action': 'login',
-        'ac_id': 5,
-        'is_ldap': 1,
-        'type': 2,
-        'local_auth': 1}
-    extravalues = {
-        'action': 'auto_dm',
-        'uid': 1,
+        'ac_id': 3,
+        'save_me': 1,
+        'ajax': 1}
+    logoutValues = {
         'username': username,
-        'password': password}
+        'password': password,
+        'action': 'login',
+        'ajax': 1}
 
 
 # store them in a dict
 # thanks to Fiddler2
 
-def checkStatus():
-    if page == b'online_num_error':
+def checkStatus(page):
+    if page.startswith(b'E2532'):
         print('online_num_error')
         # catch online_num_error, try to kick off the other device
-        request(extraURL, extravalues)
+        request(logoutUrl, logoutValues)
         # send request to kick off
-        request(requestURL, requestvalues)
+        page1 = request(loginUrl, loginValues)
         # login again
-        checkStatus()
+        checkStatus(page1)
 
 
-    elif (page == b'password_error' or page == b'username_error'):
+    elif (page.startswith(b'E2901')):
         # check wrong username and password
         print('bad username or password')
         inputValues(passwordError=True)
-        request(requestURL, requestvalues)
-        checkStatus()
+        page3 = request(loginUrl, requestvalues)
+        checkStatus(page3)
 
-    elif page == b'<script language="javascript">location="/srun_portal.html?action=login_ok";</script> ':
+    elif page.startswith(b'login_ok'):
         print('%s login successfully!' % (username))
-
-    elif page == b'\xe6\x82\xa8\xe7\x9a\x84ip\xe5\xbc\x82\xe5\xb8\xb8\xef\xbc\x8c\xe8\xaf\xb7\xe6\x96\xad\xe5\xbc\x80wifi\xe5\x90\x8e\xe9\x87\x8d\xe6\x96\xb0\xe8\xbf\x9e\xe6\x8e\xa5':
-        print('Not connected to ZJUWlan')
     else:
         print('unknown response:', page)
 
@@ -133,6 +131,6 @@ if not os.path.isfile('values.txt'):
 # check values.txt,if it doesn't exist,create one
 readValues()
 setValues()
-request(requestURL, requestvalues)
-checkStatus()
+page2 = request(loginUrl, loginValues)
+checkStatus(page2)
 dict()
